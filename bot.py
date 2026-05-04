@@ -109,6 +109,8 @@ async def send_advertisement():
     
     logging.info(f"Reklama {count} ta chatga muvaffaqiyatli yuborildi.")
 
+import os
+
 # --- RENDER UCHUN WEB SERVER ---
 async def handle(request):
     return web.Response(text="Bot is running!")
@@ -118,24 +120,35 @@ async def start_web_server():
     app.router.add_get("/", handle)
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", 10000)
+    
+    # Render beradigan portni olamiz, bo'lmasa 10000
+    port = int(os.environ.get("PORT", 10000))
+    site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
-    logging.info("Web server 10000-portda ishga tushdi.")
+    logging.info(f"Web server {port}-portda ishga tushdi.")
 
 # --- ASOSIY FUNKSIYA ---
 async def main():
     init_db()
     
-    # Web serverni alohida task qilib ishga tushiramiz
     asyncio.create_task(start_web_server())
 
     scheduler = AsyncIOScheduler()
-    # Siz bergan yangi vaqtlar: 07:00, 12:00, 13:50, 17:00, 22:00
+    # Yangi vaqtlar: 07:00, 12:00, 13:50, 17:00, 22:00
     scheduler.add_job(send_advertisement, "cron", hour="7,12,17,22", minute=0)
     scheduler.add_job(send_advertisement, "cron", hour=13, minute=50)
     scheduler.start()
 
     logging.info("Bot ishga tushdi...")
+    
+    # Chat ID larni loglarda ko'rsatish uchun (Sizga yordam berishim uchun)
+    @dp.message()
+    @dp.channel_post()
+    async def log_chat_id(message: types.Message):
+        if message.chat.type in ["group", "supergroup", "channel"]:
+            add_chat(message.chat.id)
+            logging.info(f"YANGI CHAT ANIQLANDI! Nomi: {message.chat.title}, ID: {message.chat.id}")
+
     await dp.start_polling(bot)
 
 if __name__ == "__main__":

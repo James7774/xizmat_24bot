@@ -5,6 +5,7 @@ from datetime import datetime
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from aiohttp import web
 
 # --- KONFIGURATSIYA ---
 BOT_TOKEN = "8642619178:AAHnJxQgW0DsUOZvt13Zlf-fP95-fCG-1wY"
@@ -108,10 +109,26 @@ async def send_advertisement():
     
     logging.info(f"Reklama {count} ta chatga muvaffaqiyatli yuborildi.")
 
+# --- RENDER UCHUN WEB SERVER ---
+async def handle(request):
+    return web.Response(text="Bot is running!")
+
+async def start_web_server():
+    app = web.Application()
+    app.router.add_get("/", handle)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", 10000)
+    await site.start()
+    logging.info("Web server 10000-portda ishga tushdi.")
+
 # --- ASOSIY FUNKSIYA ---
 async def main():
     init_db()
     
+    # Web serverni alohida task qilib ishga tushiramiz
+    asyncio.create_task(start_web_server())
+
     scheduler = AsyncIOScheduler()
     # Siz bergan yangi vaqtlar: 07:00, 12:00, 13:50, 17:00, 22:00
     scheduler.add_job(send_advertisement, "cron", hour="7,12,17,22", minute=0)

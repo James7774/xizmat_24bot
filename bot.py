@@ -69,6 +69,11 @@ async def test_command(message: types.Message):
     await message.answer("Reklama yuborish boshlandi...")
     await send_advertisement()
 
+@dp.message(Command("id"))
+@dp.channel_post(Command("id"))
+async def get_id_command(message: types.Message):
+    await message.answer(f"Ushbu chat ID-si: {message.chat.id}")
+
 @dp.message()
 @dp.channel_post()
 async def check_new_chat(message: types.Message):

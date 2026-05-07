@@ -19,12 +19,12 @@ REKLAMA_MATNI = """🚚 LABO XIZMATI – NAMANGAN
 👨🔧 Ishonchli haydovchilar
 🔥 1 qo‘ng‘iroq – muammo hal!
 👉 Buyurtma berish uchun yozing:
-📲 Telegram: Namangan_labo24
+📲 Telegram: Labo_93
 📞 +998950703345
 📞 +998912933345"""
 
 # Rasm fayli nomi
-RASM_NOMI = "Screenshot 2026-05-04 125452.png"
+RASM_NOMI = "ChatGPT Image May 7, 2026, 12_14_07 PM.png"
 
 # --- DATABASE SOZLAMALARI ---
 def init_db():
@@ -68,11 +68,6 @@ dp = Dispatcher()
 async def test_command(message: types.Message):
     await message.answer("Reklama yuborish boshlandi...")
     await send_advertisement()
-
-@dp.message(Command("id"))
-@dp.channel_post(Command("id"))
-async def get_id_command(message: types.Message):
-    await message.answer(f"Ushbu chat ID-si: {message.chat.id}")
 
 @dp.message()
 @dp.channel_post()
@@ -138,10 +133,11 @@ async def main():
     
     asyncio.create_task(start_web_server())
 
-    scheduler = AsyncIOScheduler()
-    # Yangi vaqtlar: 07:00, 12:00, 13:50, 17:00, 22:00
+    from datetime import timezone, timedelta
+    uzb_tz = timezone(timedelta(hours=5))
+    scheduler = AsyncIOScheduler(timezone=uzb_tz)
+    # Vaqtlar: 07:00, 12:00, 17:00, 22:00 (O'zbekiston vaqti bilan)
     scheduler.add_job(send_advertisement, "cron", hour="7,12,17,22", minute=0)
-    scheduler.add_job(send_advertisement, "cron", hour=13, minute=50)
     scheduler.start()
 
     logging.info("Bot ishga tushdi...")

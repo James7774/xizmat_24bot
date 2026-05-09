@@ -1,6 +1,7 @@
 import asyncio
 import logging
-import sqlite3
+import psycopg2
+import os
 from datetime import datetime
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
@@ -26,36 +27,47 @@ REKLAMA_MATNI = """🚚 LABO XIZMATI – NAMANGAN
 # Rasm fayli nomi
 RASM_NOMI = "ChatGPT Image May 7, 2026, 12_14_07 PM.png"
 
-# --- DATABASE SOZLAMALARI ---
+# Neon.tech PostgreSQL ulanish manzili
+DATABASE_URL = "postgresql://neondb_owner:npg_ehtQ4OvUiP0F@ep-winter-shadow-aqvf5uub-pooler.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require"
+
 def init_db():
-    conn = sqlite3.connect("bot_data.db")
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS chats (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            chat_id INTEGER UNIQUE
-        )
-    """)
-    conn.commit()
-    conn.close()
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS chats (
+                id SERIAL PRIMARY KEY,
+                chat_id BIGINT UNIQUE
+            )
+        """)
+        conn.commit()
+        conn.close()
+        logging.info("PostgreSQL bazasi tayyor.")
+    except Exception as e:
+        logging.error(f"Bazani ishga tushirishda xatolik: {e}")
 
 def add_chat(chat_id):
-    conn = sqlite3.connect("bot_data.db")
-    cursor = conn.cursor()
     try:
-        cursor.execute("INSERT INTO chats (chat_id) VALUES (?)", (chat_id,))
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        # ON CONFLICT orqali dublikat ID larni oldini olamiz
+        cursor.execute("INSERT INTO chats (chat_id) VALUES (%s) ON CONFLICT (chat_id) DO NOTHING", (chat_id,))
         conn.commit()
-    except sqlite3.IntegrityError:
-        pass  # Chat allaqachon mavjud bo'lsa
-    conn.close()
+        conn.close()
+    except Exception as e:
+        logging.error(f"Chatni qo'shishda xatolik: {e}")
 
 def get_all_chats():
-    conn = sqlite3.connect("bot_data.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT chat_id FROM chats")
-    chats = [row[0] for row in cursor.fetchall()]
-    conn.close()
-    return chats
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        cursor.execute("SELECT chat_id FROM chats")
+        chats = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        return chats
+    except Exception as e:
+        logging.error(f"Chatlarni olishda xatolik: {e}")
+        return []
 
 # --- BOT LOGIKASI ---
 logging.basicConfig(level=logging.INFO)

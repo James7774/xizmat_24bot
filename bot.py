@@ -86,6 +86,7 @@ async def on_my_chat_member(event: types.ChatMemberUpdated):
 # Reklama yuborish funksiyasi
 async def send_advertisement():
     chats = get_all_chats()
+    logging.info(f"Reklama yuborish boshlandi. Bazada {len(chats)} ta chat topildi.")
     count = 0
     
     from aiogram.types import FSInputFile
@@ -136,9 +137,20 @@ async def main():
     from datetime import timezone, timedelta
     uzb_tz = timezone(timedelta(hours=5))
     scheduler = AsyncIOScheduler(timezone=uzb_tz)
+    
     # Vaqtlar: 07:00, 12:00, 17:00, 22:00 (O'zbekiston vaqti bilan)
-    scheduler.add_job(send_advertisement, "cron", hour="7,12,17,22", minute=0)
+    # misfire_grace_time=3600 qo'shildi: agar bot o'sha vaqtda o'chiq bo'lsa, 
+    # yongandan keyin 1 soat ichida baribir reklamani yuboradi.
+    scheduler.add_job(
+        send_advertisement, 
+        "cron", 
+        hour="7,12,17,22", 
+        minute=0,
+        misfire_grace_time=3600
+    )
     scheduler.start()
+    
+    logging.info(f"Scheduler ishga tushdi. Keyingi reklamalar: 07:00, 12:00, 17:00, 22:00 (Toshkent vaqti)")
 
     logging.info("Bot ishga tushdi...")
     

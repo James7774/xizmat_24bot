@@ -150,19 +150,19 @@ async def main():
     uzb_tz = timezone(timedelta(hours=5))
     scheduler = AsyncIOScheduler(timezone=uzb_tz)
     
-    # Vaqtlar: 07:00, 12:00, 17:00, 22:00 (O'zbekiston vaqti bilan)
+    # Vaqtlar: 05:00, 07:00, 10:00, 12:00, 15:00, 18:00, 21:00, 23:00 (O'zbekiston vaqti bilan)
     # misfire_grace_time=3600 qo'shildi: agar bot o'sha vaqtda o'chiq bo'lsa, 
     # yongandan keyin 1 soat ichida baribir reklamani yuboradi.
     scheduler.add_job(
         send_advertisement, 
         "cron", 
-        hour="7,12,17,22", 
+        hour="5,7,10,12,15,18,21,23", 
         minute=0,
         misfire_grace_time=3600
     )
     scheduler.start()
     
-    logging.info(f"Scheduler ishga tushdi. Keyingi reklamalar: 07:00, 12:00, 17:00, 22:00 (Toshkent vaqti)")
+    logging.info(f"Scheduler ishga tushdi. Keyingi reklamalar: 05, 07, 10, 12, 15, 18, 21, 23:00 (Toshkent vaqti)")
 
     logging.info("Bot ishga tushdi...")
     

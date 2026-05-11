@@ -2,6 +2,7 @@ import asyncio
 import logging
 import psycopg2
 import os
+import pytz
 from datetime import datetime
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
@@ -70,7 +71,10 @@ def get_all_chats():
         return []
 
 # --- BOT LOGIKASI ---
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
@@ -97,15 +101,21 @@ async def on_my_chat_member(event: types.ChatMemberUpdated):
 
 # Reklama yuborish funksiyasi
 async def send_advertisement():
+    logging.info("REKLAMA VAKTI KELDI! Jarayon boshlandi...")
     chats = get_all_chats()
-    logging.info(f"Reklama yuborish boshlandi. Bazada {len(chats)} ta chat topildi.")
-    count = 0
+    logging.info(f"Bazada {len(chats)} ta chat topildi.")
     
+    if not chats:
+        logging.warning("Reklama yuborish uchun hech qanday chat topilmadi!")
+        return
+
+    count = 0
     from aiogram.types import FSInputFile
     import os
     
     if not os.path.exists(RASM_NOMI):
         photo = None
+        logging.error(f"Rasm fayli topilmadi: {RASM_NOMI}")
     else:
         photo = FSInputFile(RASM_NOMI)
 
@@ -116,13 +126,11 @@ async def send_advertisement():
             else:
                 await bot.send_message(chat_id=chat_id, text=REKLAMA_MATNI)
             count += 1
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.1) # Biroz sekinroq yuboramiz (Telegram limiti uchun)
         except Exception as e:
             logging.error(f"Xatolik {chat_id} ga yuborishda: {e}")
     
     logging.info(f"Reklama {count} ta chatga muvaffaqiyatli yuborildi.")
-
-import os
 
 # --- RENDER UCHUN WEB SERVER ---
 async def handle(request):
@@ -140,19 +148,23 @@ async def start_web_server():
     await site.start()
     logging.info(f"Web server {port}-portda ishga tushdi.")
 
+async def heartbeat_task():
+    while True:
+        logging.info("HEARTBEAT: Bot tirik va ishlayapti.")
+        await asyncio.sleep(1800) # Har 30 daqiqada log yozadi
+
 # --- ASOSIY FUNKSIYA ---
 async def main():
     init_db()
     
     asyncio.create_task(start_web_server())
+    asyncio.create_task(heartbeat_task())
 
-    from datetime import timezone, timedelta
-    uzb_tz = timezone(timedelta(hours=5))
+    # Pytz orqali O'zbekiston vaqtini sozlash
+    uzb_tz = pytz.timezone('Asia/Tashkent')
     scheduler = AsyncIOScheduler(timezone=uzb_tz)
     
-    # Vaqtlar: 05:00, 07:00, 10:00, 12:00, 15:00, 18:00, 21:00, 23:00 (O'zbekiston vaqti bilan)
-    # misfire_grace_time=3600 qo'shildi: agar bot o'sha vaqtda o'chiq bo'lsa, 
-    # yongandan keyin 1 soat ichida baribir reklamani yuboradi.
+    # Vaqtlar: 05:00, 07:00, 10:00, 12:00, 15:00, 18:00, 21:00, 23:00
     scheduler.add_job(
         send_advertisement, 
         "cron", 
@@ -162,7 +174,7 @@ async def main():
     )
     scheduler.start()
     
-    logging.info(f"Scheduler ishga tushdi. Keyingi reklamalar: 05, 07, 10, 12, 15, 18, 21, 23:00 (Toshkent vaqti)")
+    logging.info(f"Scheduler ishga tushdi. Vaqt zonasi: {uzb_tz}")
 
     logging.info("Bot ishga tushdi...")
     

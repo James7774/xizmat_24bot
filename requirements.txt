@@ -2,3 +2,4 @@ aiogram
 apscheduler
 aiohttp
 psycopg2-binary
+pytz

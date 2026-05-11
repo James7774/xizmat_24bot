@@ -10,7 +10,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiohttp import web
 
 # --- KONFIGURATSIYA ---
-BOT_TOKEN = "8642619178:AAHnJxQgW0DsUOZvt13Zlf-fP95-fCG-1wY"
+BOT_TOKEN = "8642619178:AAHZxlUfGLDd-uwcBXJ4DYa_ijc48CUFFK8"
 
 # Reklama matni
 REKLAMA_MATNI = """🚚 LABO XIZMATI – NAMANGAN

@@ -88,9 +88,10 @@ async def test_command(message: types.Message):
 @dp.message()
 @dp.channel_post()
 async def check_new_chat(message: types.Message):
-    # Faqat guruh, superguruh va kanallarni saqlaymiz (shaxsiy chatlarni emas)
+    # Faqat guruh, superguruh va kanallarni saqlaymiz
     if message.chat.type in ["group", "supergroup", "channel"]:
         add_chat(message.chat.id)
+        logging.info(f"YANGI CHAT ANIQLANDI! Nomi: {message.chat.title}, ID: {message.chat.id}")
 
 @dp.my_chat_member()
 async def on_my_chat_member(event: types.ChatMemberUpdated):
@@ -121,16 +122,18 @@ async def send_advertisement():
 
     for chat_id in chats:
         try:
+            logging.info(f"Yuborilmoqda: {chat_id}")
             if photo:
                 await bot.send_photo(chat_id=chat_id, photo=photo, caption=REKLAMA_MATNI)
             else:
                 await bot.send_message(chat_id=chat_id, text=REKLAMA_MATNI)
             count += 1
-            await asyncio.sleep(0.1) # Biroz sekinroq yuboramiz (Telegram limiti uchun)
+            logging.info(f"Muvaffaqiyatli: {chat_id}")
+            await asyncio.sleep(0.5) # Telegram limitlariga tushmaslik uchun (0.5 sek)
         except Exception as e:
             logging.error(f"Xatolik {chat_id} ga yuborishda: {e}")
     
-    logging.info(f"Reklama {count} ta chatga muvaffaqiyatli yuborildi.")
+    logging.info(f"TAYYOR! Jami {count} ta chatga reklama yuborildi.")
 
 # --- RENDER UCHUN WEB SERVER ---
 async def handle(request):
@@ -150,7 +153,12 @@ async def start_web_server():
 
 async def heartbeat_task():
     while True:
-        logging.info("HEARTBEAT: Bot tirik va ishlayapti.")
+        try:
+            conn = psycopg2.connect(DATABASE_URL)
+            conn.close()
+            logging.info("HEARTBEAT: Bot ishlayapti va Ma'lumotlar bazasi bilan aloqa joyida.")
+        except Exception as e:
+            logging.error(f"HEARTBEAT XATOLIK: Baza bilan aloqa uzilgan: {e}")
         await asyncio.sleep(1800) # Har 30 daqiqada log yozadi
 
 # --- ASOSIY FUNKSIYA ---
@@ -164,11 +172,11 @@ async def main():
     uzb_tz = pytz.timezone('Asia/Tashkent')
     scheduler = AsyncIOScheduler(timezone=uzb_tz)
     
-    # Vaqtlar: 05:00, 07:00, 10:00, 12:00, 15:00, 18:00, 21:00, 23:00
+    # Vaqtlar: 05:00, 06:00, 08:00, 10:00, 12:00, 14:00, 16:00, 19:00, 21:00, 23:00
     scheduler.add_job(
         send_advertisement, 
         "cron", 
-        hour="5,7,10,12,15,18,21,23", 
+        hour="5,6,8,10,12,14,16,19,21,23", 
         minute=0,
         misfire_grace_time=3600
     )
@@ -178,13 +186,6 @@ async def main():
 
     logging.info("Bot ishga tushdi...")
     
-    # Chat ID larni loglarda ko'rsatish uchun (Sizga yordam berishim uchun)
-    @dp.message()
-    @dp.channel_post()
-    async def log_chat_id(message: types.Message):
-        if message.chat.type in ["group", "supergroup", "channel"]:
-            add_chat(message.chat.id)
-            logging.info(f"YANGI CHAT ANIQLANDI! Nomi: {message.chat.title}, ID: {message.chat.id}")
 
     await dp.start_polling(bot)
 
